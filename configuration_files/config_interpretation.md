@@ -1,11 +1,11 @@
 > 提供一个官方文档的链接：chrome-extension://cdonnmffkdaoajfknoeeecmchibpmkmg/assets/pdf/web/viewer.html?file=https%3A%2F%2Fbuildmedia.readthedocs.org%2Fmedia%2Fpdf%2Fgoogle-cartographer-ros%2Flatest%2Fgoogle-cartographer-ros.pdf
-文档中p33的Lua configuration reference documentation有对设置的简介
+文档中p33的Lua configuration reference documentation有对部分设置的简介
 ```lua
 MAP_BUILDER = {
-  use_trajectory_builder_2d = false,
-  use_trajectory_builder_3d = false,
-  num_background_threads = 4,
-  pose_graph = POSE_GRAPH,
+  use_trajectory_builder_2d = false, -- 使用2dslam
+  use_trajectory_builder_3d = false, -- 使用3dslam
+  num_background_threads = 4, --（核数（双核四线程=2 ））
+  pose_graph = POSE_GRAPH, --后端优化的具体参数配置
 }
 ```
 ```lua
@@ -75,4 +75,5 @@ TRAJECTORY_BUILDER_2D = {
   },
 }
 ```
-* use_trajectory_builder_2d：为使用2d slam 。在进行2d slam 时，carto的默认配置是使用imu的，所以如果没有imu就要TRAJECTORY_BUILDER_2D.use_imu_data = false，否则会一直等待imu的数据而进行不下去。而3d 的 slam 必须使用imu，所以就没有这个参数配置。
+* use_trajectory_builder_2d：为使用2d slam 。在进行2d slam时，carto的默认配置是使用imu的，所以如果没有imu就要TRAJECTORY_BUILDER_2D.use_imu_data = false，否则会一直等待imu的数据而进行不下去。而3d slam必须使用imu，所以就没有这个参数配置。
+
