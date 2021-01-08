@@ -19,21 +19,21 @@ TRAJECTORY_BUILDER_2D = {
   max_z = 2., --专门针对于3dslam中的z轴进行点云切割
   missing_data_ray_length = 5., --和ray_trace_range类似，该值通常要大于max_range
   num_accumulated_range_data = 1, --将n个UDP数据包的点云(per-UDP-packet point clouds)合成一个大的点云
-  voxel_filter_size = 0.025, #体素滤波器大小，过小则意味着更多的计算量，过大则意味着部分数据可能丢失
+  voxel_filter_size = 0.025, #体素滤波器大小，过小则意味着更多的计算量，过大则意味着部分数据可能丢失。该滤波器在裁剪数据后会立即应用到范围数据上
 
-  adaptive_voxel_filter = { --自适应体素滤波器的详细参数
+  adaptive_voxel_filter = { --自适应体素滤波器的详细参数。该滤波器计算一个稀疏点云用于进行匹配
     max_length = 0.5, --限制最大长度作为优化约束
     min_num_points = 200, --一个体素cube中包含点云的最小量
     max_range = 50., 
   },
 
-  loop_closure_adaptive_voxel_filter = {
+  loop_closure_adaptive_voxel_filter = { --该自适应滤波器计算一个稀疏点云用于回环检测
     max_length = 0.9,
     min_num_points = 100,
     max_range = 50.,
   },
 
-  use_online_correlative_scan_matching = false,
+  use_online_correlative_scan_matching = false, --是否用correlative scan matcher给Ceres生成一个良好的优化起点
   real_time_correlative_scan_matcher = {
     linear_search_window = 0.1,
     angular_search_window = math.rad(20.),
@@ -41,7 +41,7 @@ TRAJECTORY_BUILDER_2D = {
     rotation_delta_cost_weight = 1e-1,
   },
 
-  ceres_scan_matcher = {
+  ceres_scan_matcher = {  
     occupied_space_weight = 1.,
     translation_weight = 10.,
     rotation_weight = 40.,
@@ -58,7 +58,7 @@ TRAJECTORY_BUILDER_2D = {
     max_angle_radians = math.rad(1.),
   },
 
-  imu_gravity_time_constant = 10.,
+  imu_gravity_time_constant = 10., --IMU的重力加速度常数
 
   submaps = {
     num_range_data = 90,
@@ -108,8 +108,9 @@ TRAJECTORY_BUILDER_2D.min_range = 1.1
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 160.0
 ```
 
-* voxel_filter_size: 范围数据通常是从机器人上的单个点以多个角度测量的，因此闭合的表面（例如道路）会提供很多点云。但远处的物体被激光击中的机会更少，而提供的点云则更少。为了减轻点云处理的计算量，我们通常需要对点云进行降采样。但是，简单的随机采样会导致低密度区域中点变得更少，而高密度区域仍然具有比所需数量更多的点。为了解决该问题，cartographer使用体素滤波器过滤数据，并且仅保留每个体素（cube）的质心。较小的体素大小将导致更密集的数据表示，从而导致更多的计算量。 较大的体素大小会导致数据丢失，但会更快。
+* voxel_filter_size: 范围数据通常是从机器人上的单个点以多个角度测量的，因此闭合的表面（例如道路）会提供很多点云。但远处的物体被激光击中的机会更少，而提供的点云则更少。为了减轻点云处理的计算量，我们通常需要对点云进行降采样。但是，简单的随机采样会导致低密度区域中点变得更少，而高密度区域仍然具有比所需数量更多的点。为了解决该问题，cartographer使用体素滤波器过滤数据，并且仅保留每个体素（cube）的质心。较小的体素大小将导致更密集的数据表示，从而导致更多的计算量。较大的体素大小会导致数据丢失，但会更快。在3dslam中分别应用高通和低通滤波器。
 
+```lua
 MAX_3D_RANGE = 60.
 
 TRAJECTORY_BUILDER_3D = {
@@ -172,3 +173,4 @@ TRAJECTORY_BUILDER_3D = {
     },
   },
 }
+```
