@@ -1,5 +1,5 @@
-> 提供一个官方文档的链接：chrome-extension://cdonnmffkdaoajfknoeeecmchibpmkmg/assets/pdf/web/viewer.html?file=https%3A%2F%2Fbuildmedia.readthedocs.org%2Fmedia%2Fpdf%2Fgoogle-cartographer-ros%2Flatest%2Fgoogle-cartographer-ros.pdf
->文档中p33的Lua configuration reference documentation有对部分设置的简介
+> 官方文档文档中p33的Lua configuration reference documentation有对部分设置的简介：chrome-extension://cdonnmffkdaoajfknoeeecmchibpmkmg/assets/pdf/web/viewer.html?file=https%3A%2F%2Fbuildmedia.readthedocs.org%2Fmedia%2Fpdf%2Fgoogle-cartographer-ros%2Flatest%2Fgoogle-cartographer-ros.pdf
+
 
 ```lua
 --map_builder.lua
