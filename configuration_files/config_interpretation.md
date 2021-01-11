@@ -10,6 +10,9 @@ MAP_BUILDER = {
   pose_graph = POSE_GRAPH, --后端优化的具体参数配置
 }
 ```
+* use_trajectory_builder_2d：为使用2d slam 。在进行2d slam时，carto的默认配置是使用imu的，所以如果没有imu就要TRAJECTORY_BUILDER_2D.use_imu_data = false，否则会一直等待imu的数据而进行不下去。而3d slam必须使用imu，所以就没有这个参数配置。
+
+
 ```lua
 --map_builder_server.lua
 TRAJECTORY_BUILDER_2D = {
@@ -36,48 +39,51 @@ TRAJECTORY_BUILDER_2D = {
 
   use_online_correlative_scan_matching = false, --是否用correlative scan matcher给Ceres生成一个良好的优化起点
   real_time_correlative_scan_matcher = {
-    linear_search_window = 0.1,
-    angular_search_window = math.rad(20.),
-    translation_delta_cost_weight = 1e-1,
+    linear_search_window = 0.1, --最小化线性搜索窗口，用于搜索最有可能性的scan alignment 
+    angular_search_window = math.rad(20.), --最小化角度搜索窗口，用于搜索最有可能性的scan alignment 
+    translation_delta_cost_weight = 1e-1, --该处的权重应用到score的每一部分
     rotation_delta_cost_weight = 1e-1,
   },
 
   ceres_scan_matcher = {  --解决最小二乘问题进行匹配
     occupied_space_weight = 1.,
     translation_weight = 10.,
-    rotation_weight = 40.,
+    rotation_weight = 40., 
     ceres_solver_options = {
-      use_nonmonotonic_steps = false,
-      max_num_iterations = 20,
+      use_nonmonotonic_steps = false, --使用非单调的step，该定义在ceres官网中有解释
+      max_num_iterations = 20, --优化器的最大迭代次数
       num_threads = 1,
     },
   },
 
   motion_filter = { --2d中用来判断是否对子图进行更新的一个类
-    max_time_seconds = 5.,
-    max_distance_meters = 0.2,
-    max_angle_radians = math.rad(1.),
+    max_time_seconds = 5., --基于时间插入范围数据的阈值
+    max_distance_meters = 0.2, --基于直线运动插入距离数据的阈值
+    max_angle_radians = math.rad(1.), --基于旋转轴数据插入范围数据的阈值
   },
 
   imu_gravity_time_constant = 10., --IMU的重力加速度常数
 
   submaps = { --设置子图
-    num_range_data = 90,
+    num_range_data = 90,--添加新子图（submap）之前的范围数据数。每个子图将得到两倍数量的范围数据插入
     grid_options_2d = {
       grid_type = "PROBABILITY_GRID",
-      resolution = 0.05,
+      resolution = 0.05, --分辨率
     },
     range_data_inserter = { --和resilution一起存储指定分辨率概率栅格
       range_data_inserter_type = "PROBABILITY_GRID_INSERTER_2D",
-      probability_grid_range_data_inserter = {
-        insert_free_space = true,
-        hit_probability = 0.55,
-        miss_probability = 0.49,
+      probability_grid_range_data_inserter = { --关于grid的占用
+        insert_free_space = true, --如果“False”那么自由空间（free space）不会改变占用网格的概率
+        hit_probability = 0.55, --命中的概率变化(该数值将转换为几率，因此必须大于0.5)
+        miss_probability = 0.49, --错过的概率变化(同上，因此必须小于0.5)
       },
     },
   },
 }
 ```
+
+* TRAJECTORY_BUILDER_nD.min(max)_range: 测距传感器(例如:激光雷达)提供多个方向的深度信息。然而，有些测量结果与SLAM无关(传感器部分被灰尘覆盖或测量到噪声数据,或者一些远距离测量的数据可能来自一些不被希望纳入的噪音源或者反射等等)。为了解决这些问题，Cartographer首先应用一个bandpass filter(带通滤波器) ，并保持滤波器范围值（bandwidth）在一定的范围之间，其最小值和最大值应根据机器人和传感器的规格选择。
+
 
 * use_trajectory_builder_2d：为使用2d slam 。在进行2d slam时，carto的默认配置是使用imu的，所以如果没有imu就要TRAJECTORY_BUILDER_2D.use_imu_data = false，否则会一直等待imu的数据而进行不下去。而3d slam必须使用imu，所以就没有这个参数配置。
 
@@ -115,3 +121,92 @@ TRAJECTORY_BUILDER_2D.missing_data_ray_length = 160.0
 * ceres_scan_matcher: 需要注意的是，在前端的SLAM定位过程中，cartographer3D并没有像2D那样先使用scan matching确定初值，然后进行ceres优化，而是直接使用IMU提供的角速度进行积分，获得一个旋转初值，用于优化姿态，而如果有里程计，会给出一个平移的初值，如果没有里程计，该初值为0。因此前端定位直接是ceres优化。
 
 * motion_filter: MotionFilter是cartographer中用来判断是否对子图进行更新的一个类，具体应用在local_trajectory_build_2d和local_trajectory_build_2d中。首先这里对MotionFilter的使用场景进行推导，例如，在local_trajectory_build_2d中，AddRangeData函数调用AddAccumulatedRangeData函数来扫描匹配并插入扫描数据，AddAccumulatedRangeData函数在扫描匹配完成后，会调用InsertIntoSubmap函数将扫描数据插入子图，而InsertIntoSubmap函数第一步就会调用motion_filter_.IsSimilar(time, pose_estimate)来判断当前扫描是否能插入子图中
+
+
+
+```lua
+pose_graph.lua
+
+POSE_GRAPH = {
+  optimize_every_n_nodes = 90,
+  constraint_builder = {
+    sampling_ratio = 0.3,
+    max_constraint_distance = 15.,
+    min_score = 0.55,
+    global_localization_min_score = 0.6,
+    loop_closure_translation_weight = 1.1e4,
+    loop_closure_rotation_weight = 1e5,
+    log_matches = true,
+    fast_correlative_scan_matcher = {
+      linear_search_window = 7.,
+      angular_search_window = math.rad(30.),
+      branch_and_bound_depth = 7,
+    },
+    ceres_scan_matcher = {
+      occupied_space_weight = 20.,
+      translation_weight = 10.,
+      rotation_weight = 1.,
+      ceres_solver_options = {
+        use_nonmonotonic_steps = true,
+        max_num_iterations = 10,
+        num_threads = 1,
+      },
+    },
+    fast_correlative_scan_matcher_3d = {
+      branch_and_bound_depth = 8,
+      full_resolution_depth = 3,
+      min_rotational_score = 0.77,
+      min_low_resolution_score = 0.55,
+      linear_xy_search_window = 5.,
+      linear_z_search_window = 1.,
+      angular_search_window = math.rad(15.),
+    },
+    ceres_scan_matcher_3d = {
+      occupied_space_weight_0 = 5.,
+      occupied_space_weight_1 = 30.,
+      translation_weight = 10.,
+      rotation_weight = 1.,
+      only_optimize_yaw = false,
+      ceres_solver_options = {
+        use_nonmonotonic_steps = false,
+        max_num_iterations = 10,
+        num_threads = 1,
+      },
+    },
+  },
+  matcher_translation_weight = 5e2,
+  matcher_rotation_weight = 1.6e3,
+  optimization_problem = {
+    huber_scale = 1e1,
+    acceleration_weight = 1.1e2,
+    rotation_weight = 1.6e4,
+    local_slam_pose_translation_weight = 1e5,
+    local_slam_pose_rotation_weight = 1e5,
+    odometry_translation_weight = 1e5,
+    odometry_rotation_weight = 1e5,
+    fixed_frame_pose_translation_weight = 1e1,
+    fixed_frame_pose_rotation_weight = 1e2,
+    fixed_frame_pose_use_tolerant_loss = false,
+    fixed_frame_pose_tolerant_loss_param_a = 1,
+    fixed_frame_pose_tolerant_loss_param_b = 1,
+    log_solver_summary = false,
+    use_online_imu_extrinsics_in_3d = true,
+    fix_z_in_3d = false,
+    ceres_solver_options = {
+      use_nonmonotonic_steps = false,
+      max_num_iterations = 50,
+      num_threads = 7,
+    },
+  },
+  max_num_final_iterations = 200,
+  global_sampling_ratio = 0.003,
+  log_residual_histograms = true,
+  global_constraint_search_after_n_seconds = 10.,
+  --  overlapping_submaps_trimmer_2d = {
+  --    fresh_submaps_count = 1,
+  --    min_covered_area = 2,
+  --    min_added_submaps_count = 5,
+  --  },
+}
+
+```
