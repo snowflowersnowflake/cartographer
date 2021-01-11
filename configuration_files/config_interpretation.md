@@ -42,7 +42,7 @@ TRAJECTORY_BUILDER_2D = {
     rotation_delta_cost_weight = 1e-1,
   },
 
-  ceres_scan_matcher = {  
+  ceres_scan_matcher = {  --解决最小二乘问题进行匹配
     occupied_space_weight = 1.,
     translation_weight = 10.,
     rotation_weight = 40.,
@@ -53,7 +53,7 @@ TRAJECTORY_BUILDER_2D = {
     },
   },
 
-  motion_filter = {
+  motion_filter = { --2d中用来判断是否对子图进行更新的一个类
     max_time_seconds = 5.,
     max_distance_meters = 0.2,
     max_angle_radians = math.rad(1.),
@@ -61,13 +61,13 @@ TRAJECTORY_BUILDER_2D = {
 
   imu_gravity_time_constant = 10., --IMU的重力加速度常数
 
-  submaps = {
+  submaps = { --设置子图
     num_range_data = 90,
     grid_options_2d = {
       grid_type = "PROBABILITY_GRID",
       resolution = 0.05,
     },
-    range_data_inserter = {
+    range_data_inserter = { --和resilution一起存储指定分辨率概率栅格
       range_data_inserter_type = "PROBABILITY_GRID_INSERTER_2D",
       probability_grid_range_data_inserter = {
         insert_free_space = true,
@@ -111,67 +111,7 @@ TRAJECTORY_BUILDER_2D.missing_data_ray_length = 160.0
 
 * voxel_filter_size: 范围数据通常是从机器人上的单个点以多个角度测量的，因此闭合的表面（例如道路）会提供很多点云。但远处的物体被激光击中的机会更少，而提供的点云则更少。为了减轻点云处理的计算量，我们通常需要对点云进行降采样。但是，简单的随机采样会导致低密度区域中点变得更少，而高密度区域仍然具有比所需数量更多的点。为了解决该问题，cartographer使用体素滤波器过滤数据，并且仅保留每个体素（cube）的质心。较小的体素大小将导致更密集的数据表示，从而导致更多的计算量。较大的体素大小会导致数据丢失，但会更快。在3dslam中分别应用高通和低通滤波器。
 
-```lua
-MAX_3D_RANGE = 60.
 
-TRAJECTORY_BUILDER_3D = {
-  min_range = 1.,
-  max_range = MAX_3D_RANGE,
-  num_accumulated_range_data = 1,
-  voxel_filter_size = 0.15,
+* ceres_scan_matcher: 需要注意的是，在前端的SLAM定位过程中，cartographer3D并没有像2D那样先使用scan matching确定初值，然后进行ceres优化，而是直接使用IMU提供的角速度进行积分，获得一个旋转初值，用于优化姿态，而如果有里程计，会给出一个平移的初值，如果没有里程计，该初值为0。因此前端定位直接是ceres优化。
 
-  high_resolution_adaptive_voxel_filter = {
-    max_length = 2.,
-    min_num_points = 150,
-    max_range = 15.,
-  },
-
-  low_resolution_adaptive_voxel_filter = {
-    max_length = 4.,
-    min_num_points = 200,
-    max_range = MAX_3D_RANGE,
-  },
-
-  use_online_correlative_scan_matching = false,
-  real_time_correlative_scan_matcher = {
-    linear_search_window = 0.15,
-    angular_search_window = math.rad(1.),
-    translation_delta_cost_weight = 1e-1,
-    rotation_delta_cost_weight = 1e-1,
-  },
-
-  ceres_scan_matcher = {
-    occupied_space_weight_0 = 1.,
-    occupied_space_weight_1 = 6.,
-    translation_weight = 5.,
-    rotation_weight = 4e2,
-    only_optimize_yaw = false,
-    ceres_solver_options = {
-      use_nonmonotonic_steps = false,
-      max_num_iterations = 12,
-      num_threads = 1,
-    },
-  },
-
-  motion_filter = {
-    max_time_seconds = 0.5,
-    max_distance_meters = 0.1,
-    max_angle_radians = 0.004,
-  },
-
-  imu_gravity_time_constant = 10.,
-  rotational_histogram_size = 120,
-
-  submaps = {
-    high_resolution = 0.10,
-    high_resolution_max_range = 20.,
-    low_resolution = 0.45,
-    num_range_data = 160,
-    range_data_inserter = {
-      hit_probability = 0.55,
-      miss_probability = 0.49,
-      num_free_space_voxels = 2,
-    },
-  },
-}
-```
+* motion_filter: MotionFilter是cartographer中用来判断是否对子图进行更新的一个类，具体应用在local_trajectory_build_2d和local_trajectory_build_2d中。首先这里对MotionFilter的使用场景进行推导，例如，在local_trajectory_build_2d中，AddRangeData函数调用AddAccumulatedRangeData函数来扫描匹配并插入扫描数据，AddAccumulatedRangeData函数在扫描匹配完成后，会调用InsertIntoSubmap函数将扫描数据插入子图，而InsertIntoSubmap函数第一步就会调用motion_filter_.IsSimilar(time, pose_estimate)来判断当前扫描是否能插入子图中
