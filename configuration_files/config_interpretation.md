@@ -12,9 +12,31 @@ MAP_BUILDER = {
 ```
 * use_trajectory_builder_2d：为使用2d slam 。在进行2d slam时，carto的默认配置是使用imu的，所以如果没有imu就要TRAJECTORY_BUILDER_2D.use_imu_data = false，否则会一直等待imu的数据而进行不下去。而3d slam必须使用imu，所以就没有这个参数配置。
 
-
 ```lua
 --map_builder_server.lua
+MAP_BUILDER_SERVER = {
+  map_builder = MAP_BUILDER,
+  num_event_threads = 4,
+  num_grpc_threads = 4,
+  server_address = "0.0.0.0:50051",
+  uplink_server_address = "",
+  upload_batch_size = 100,
+  enable_ssl_encryption = false,
+}
+```
+
+```lua
+--trajectory_builder.lua
+TRAJECTORY_BUILDER = {
+  trajectory_builder_2d = TRAJECTORY_BUILDER_2D, --根据 2d/3d SLAM选择对应的轨迹构建模式
+  trajectory_builder_3d = TRAJECTORY_BUILDER_3D,
+  pure_localization = false, --纯定位模式，如果只用cartographer进行定位可以开启   
+}
+```
+* pure_localization应用于重定位教程：https://github.com/zhang-datou/cartographer_ros
+
+```lua
+--trajectory_builder_2d.lua
 TRAJECTORY_BUILDER_2D = {
   use_imu_data = true, --使用imu数据
   min_range = 0.,   
