@@ -127,23 +127,23 @@ TRAJECTORY_BUILDER_2D.missing_data_ray_length = 160.0
 ```lua
 pose_graph.lua
 
-POSE_GRAPH = {
-  optimize_every_n_nodes = 90,
-  constraint_builder = {
-    sampling_ratio = 0.3,
-    max_constraint_distance = 15.,
-    min_score = 0.55,
-    global_localization_min_score = 0.6,
-    loop_closure_translation_weight = 1.1e4,
-    loop_closure_rotation_weight = 1e5,
-    log_matches = true,
-    fast_correlative_scan_matcher = {
+POSE_GRAPH = { --位姿图，很重要的一个类
+  optimize_every_n_nodes = 90, --实时闭环，如果为正值则n个节点闭环一次(num_nodes_since_last_loop_closure > optimize_every_n_nodes ==> run_loop_closure)
+  constraint_builder = { --用于生成优化约束的选项
+    sampling_ratio = 0.3,  --如果添加的约束与潜在约束(potential constraints)的比例低于这个数字，就会添加约束
+    max_constraint_distance = 15.,--pose被判断为归属一个子图的距离阈值
+    min_score = 0.55, -- 置信度（score）低于该阈值则不考虑匹配，低的score表明scan和map看起来不相似
+    global_localization_min_score = 0.6, --低于此阈值的全局定位不被信任
+    loop_closure_translation_weight = 1.1e4,  --用于平移分量回环约束优化中的权重
+    loop_closure_rotation_weight = 1e5,  --用于旋转分量回环约束优化中的权重
+    log_matches = true, --设置为true则记录可用于调试的回环约束信息
+    fast_correlative_scan_matcher = { --内联scan_matcher的设置
       linear_search_window = 7.,
       angular_search_window = math.rad(30.),
       branch_and_bound_depth = 7,
     },
     ceres_scan_matcher = {
-      occupied_space_weight = 20.,
+      occupied_space_weight = 20., --每个代价函子（functor, 范畴间的映射）的比例系数
       translation_weight = 10.,
       rotation_weight = 1.,
       ceres_solver_options = {
@@ -153,13 +153,13 @@ POSE_GRAPH = {
       },
     },
     fast_correlative_scan_matcher_3d = {
-      branch_and_bound_depth = 8,
-      full_resolution_depth = 3,
-      min_rotational_score = 0.77,
-      min_low_resolution_score = 0.55,
-      linear_xy_search_window = 5.,
-      linear_z_search_window = 1.,
-      angular_search_window = math.rad(15.),
+      branch_and_bound_depth = 8, --用于预计算的栅格（grid）的数量
+      full_resolution_depth = 3, --要使用的全分辨率栅格的数量，其他栅格的分辨率只有一半
+      min_rotational_score = 0.77, --旋转匹配的最小置信度
+      min_low_resolution_score = 0.55, --仅用于3d中低分辨栅格的置信度
+      linear_xy_search_window = 5., --xy平面上的线性搜索窗口
+      linear_z_search_window = 1., --z上的线性搜索窗口
+      angular_search_window = math.rad(15.), --角窗口
     },
     ceres_scan_matcher_3d = {
       occupied_space_weight_0 = 5.,
@@ -174,22 +174,22 @@ POSE_GRAPH = {
       },
     },
   },
-  matcher_translation_weight = 5e2,
-  matcher_rotation_weight = 1.6e3,
+  matcher_translation_weight = 5e2, --用于平移分量的无回环优化问题中的权重
+  matcher_rotation_weight = 1.6e3, --用于旋转分量的无回环优化问题中的权重
   optimization_problem = {
-    huber_scale = 1e1,
-    acceleration_weight = 1.1e2,
-    rotation_weight = 1.6e4,
-    local_slam_pose_translation_weight = 1e5,
-    local_slam_pose_rotation_weight = 1e5,
-    odometry_translation_weight = 1e5,
-    odometry_rotation_weight = 1e5,
-    fixed_frame_pose_translation_weight = 1e1,
-    fixed_frame_pose_rotation_weight = 1e2,
+    huber_scale = 1e1, --Huber损失函数的比例因子
+    acceleration_weight = 1.1e2, --IMU加速项的比例因子
+    rotation_weight = 1.6e4, --IMU旋转项的比例因子
+    local_slam_pose_translation_weight = 1e5, --局部位姿下连续节点间平移变换的比例因子
+    local_slam_pose_rotation_weight = 1e5, --局部位姿下连续节点间旋转变换的比例因子
+    odometry_translation_weight = 1e5, --里程计上连续节点间平移变换的比例因子
+    odometry_rotation_weight = 1e5, --里程计上连续节点间旋转变换的比例因子
+    fixed_frame_pose_translation_weight = 1e1, -- FixedFramePose平移的比例因子 （FixedFrame是全局显示区域依托的坐标系）
+    fixed_frame_pose_rotation_weight = 1e2,  -- FixedFramePose旋转的比例因子
     fixed_frame_pose_use_tolerant_loss = false,
     fixed_frame_pose_tolerant_loss_param_a = 1,
     fixed_frame_pose_tolerant_loss_param_b = 1,
-    log_solver_summary = false,
+    log_solver_summary = false, -- 设置为True则每次优化都会记录Ceres求解器信息（summary）
     use_online_imu_extrinsics_in_3d = true,
     fix_z_in_3d = false,
     ceres_solver_options = {
@@ -198,10 +198,10 @@ POSE_GRAPH = {
       num_threads = 7,
     },
   },
-  max_num_final_iterations = 200,
-  global_sampling_ratio = 0.003,
-  log_residual_histograms = true,
-  global_constraint_search_after_n_seconds = 10.,
+  max_num_final_iterations = 200, --优化问题中对于最终优化的迭代次数
+  global_sampling_ratio = 0.003, --在全局定位中对单条轨迹节点采样的频率
+  log_residual_histograms = true, --是否输出pose残差的直方图
+  global_constraint_search_after_n_seconds = 10., --如果该时间内没有在两个轨迹之间添加全局约束，则全局执行闭环搜索，而不是局部执行
   --  overlapping_submaps_trimmer_2d = {
   --    fresh_submaps_count = 1,
   --    min_covered_area = 2,
