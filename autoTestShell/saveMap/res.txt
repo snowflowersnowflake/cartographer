@@ -1,0 +1,14 @@
+I0224 15:27:55.944097 11441 compute_relations_metrics_main.cc:175] Reading pose graph from '/media/y00/E008AA7C08AA5178/carto/build_isolated/cartographer/install/saveMap/map.pbstream'...
+I0224 15:27:55.958271 11441 compute_relations_metrics_main.cc:187] Reading ground truth from 'relations.pbstream'...
+F0224 15:27:55.958660 11441 compute_relations_metrics_main.cc:75] Check failed: values.size() >= 2 (0 vs. 2) 
+*** Check failure stack trace: ***
+    @     0x7f787701f5cd  google::LogMessage::Fail()
+    @     0x7f7877021433  google::LogMessage::SendToLog()
+    @     0x7f787701f15b  google::LogMessage::Flush()
+    @     0x7f7877021e1e  google::LogMessageFatal::~LogMessageFatal()
+    @           0x4bc000  cartographer::ground_truth::(anonymous namespace)::MeanAndStdDevString()
+    @           0x4bd282  cartographer::ground_truth::(anonymous namespace)::Run()
+    @           0x4bab0b  main
+    @     0x7f7875b40840  __libc_start_main
+    @           0x4bbc49  _start
+    @              (nil)  (unknown)

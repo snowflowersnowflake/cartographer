@@ -1,0 +1,6 @@
+image: /media/y00/E008AA7C08AA5178/carto/build_isolated/cartographer/install/saveMap/map.pgm
+resolution: 0.050000
+origin: [-9.595968, -9.788416, 0.0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
